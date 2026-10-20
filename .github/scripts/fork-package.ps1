@@ -5,7 +5,7 @@ $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path $e
 Write-Host "Built executable version: $($version.FileVersion)"
 
 $safeTag = $env:UPSTREAM_TAG -replace '[^A-Za-z0-9._-]', '_'
-$asset = "PCL-下载解禁修改版-$safeTag"
+$asset = "PCL-DownloadUnlocked-$safeTag"
 New-Item -ItemType Directory -Force dist, package | Out-Null
 Copy-Item $exe "dist/$asset.exe"
 # Include any runtime files produced by MSBuild, as well as the standalone executable.
