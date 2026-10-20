@@ -5,7 +5,7 @@ $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path $e
 Write-Host "Built executable version: $($version.FileVersion)"
 
 $safeTag = $env:UPSTREAM_TAG -replace '[^A-Za-z0-9._-]', '_'
-$asset = "PCL-chensunlai-$safeTag"
+$asset = "PCL-下载解禁修改版-$safeTag"
 New-Item -ItemType Directory -Force dist, package | Out-Null
 Copy-Item $exe "dist/$asset.exe"
 # Include any runtime files produced by MSBuild, as well as the standalone executable.
@@ -25,10 +25,10 @@ $metadata | ConvertTo-Json | Set-Content 'package/build-info.json' -Encoding utf
 Compress-Archive -Path 'package/*' -DestinationPath "dist/$asset.zip"
 Get-ChildItem dist -File | Sort-Object Name | ForEach-Object {
     "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
-} | Set-Content 'dist/SHA256SUMS.txt' -Encoding ascii
+} | Set-Content 'dist/SHA256SUMS.txt' -Encoding utf8
 
 @"
-这是第三方独立修改的 **Plain Craft Launcher (PCL) chensunlai 修改版**，不是 PCL 官方发行版。
+这是第三方独立修改的 **PCL 下载解禁修改版**，不是 PCL 官方发行版。
 
 - 上游 Release：$env:UPSTREAM_URL
 - 上游提交：$env:UPSTREAM_SHA

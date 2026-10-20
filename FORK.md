@@ -1,4 +1,4 @@
-# Plain Craft Launcher (PCL) chensunlai 修改版
+# PCL 下载解禁修改版
 
 这是第三方基于 [PCL](https://github.com/Meloong-Git/PCL) 独立修改的版本，不是官方发行版。
 原作者：**龙腾猫跃**；[赞助原作者](https://afdian.com/a/LTCat)。保留上游署名、关于页面和 LICENCE。

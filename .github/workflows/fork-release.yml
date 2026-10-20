@@ -114,7 +114,7 @@ jobs:
           $tag = "fork-$env:UPSTREAM_TAG-embedded"
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_SHA --draft --title "PCL chensunlai 修改版 $env:UPSTREAM_TAG" --notes-file release-notes.md
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_SHA --draft --title "PCL 下载解禁修改版 $env:UPSTREAM_TAG" --notes-file release-notes.md
             if ($LASTEXITCODE -ne 0) { throw 'Cannot create draft release.' }
           }
           $assets = @(Get-ChildItem dist -File | ForEach-Object { $_.FullName })
@@ -122,5 +122,5 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot upload release assets.' }
           $flags = @('--draft=false', "--prerelease=$env:IS_PRERELEASE")
           if ($env:IS_PRERELEASE -eq 'false') { $flags += '--latest' }
-          gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file release-notes.md @flags
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title "PCL 下载解禁修改版 $env:UPSTREAM_TAG" --notes-file release-notes.md @flags
           if ($LASTEXITCODE -ne 0) { throw 'Cannot publish release.' }
