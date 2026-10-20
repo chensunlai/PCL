@@ -1,0 +1,113 @@
+name: Follow upstream releases
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: follow-upstream-releases
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      matrix: ${{ steps.releases.outputs.matrix }}
+      pending: ${{ steps.releases.outputs.pending }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Find unpublished upstream releases
+        id: releases
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await require('./.github/scripts/fork-releases.cjs')({ github, context, core });
+      - name: Keep scheduled workflows active during long upstream pauses
+        if: steps.releases.outputs.pending == 'false'
+        shell: bash
+        run: |
+          age=$(( $(date +%s) - $(git log -1 --format=%ct) ))
+          if [ "$age" -ge 2592000 ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit --allow-empty -m 'Keep upstream release polling active'
+            git push origin HEAD:main
+          fi
+
+  release:
+    needs: discover
+    if: needs.discover.outputs.pending == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    env:
+      UPSTREAM_TAG: ${{ matrix.tag }}
+      UPSTREAM_URL: ${{ matrix.url }}
+      UPSTREAM_RELEASE_ID: ${{ matrix.id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Sync upstream tag and verify the one-line patch
+        id: source
+        run: python .github/scripts/fork-sync.py
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - uses: microsoft/setup-msbuild@v2
+      - name: Restore dependencies
+        run: |
+          dotnet restore PCLCS/PCLCS.csproj
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Release on GitHub
+        run: |
+          msbuild "Plain Craft Launcher 2/Plain Craft Launcher 2.vbproj" /m /p:Configuration=Release /p:Platform=AnyCPU /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package and checksum
+        env:
+          UPSTREAM_SHA: ${{ steps.source.outputs.upstream_sha }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: ./.github/scripts/fork-package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ strategy.job-index }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Create draft, upload assets, then publish
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          IS_PRERELEASE: ${{ matrix.prerelease }}
+        shell: pwsh
+        run: |
+          $tag = "fork-$env:UPSTREAM_TAG"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_SHA --draft --title "PCL chensunlai 修改版 $env:UPSTREAM_TAG" --notes-file release-notes.md
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot create draft release.' }
+          }
+          $assets = @(Get-ChildItem dist -File | ForEach-Object { $_.FullName })
+          gh release upload $tag @assets --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot upload release assets.' }
+          $flags = @('--draft=false', "--prerelease=$env:IS_PRERELEASE")
+          if ($env:IS_PRERELEASE -eq 'false') { $flags += '--latest' }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file release-notes.md @flags
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot publish release.' }
