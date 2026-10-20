@@ -6,9 +6,10 @@ import subprocess
 
 
 def git(*args, check=True):
-    return subprocess.run(
-        ["git", *args], check=check, text=True, capture_output=True
-    ).stdout.strip()
+    result = subprocess.run(["git", *args], text=True, capture_output=True)
+    if check and result.returncode:
+        raise RuntimeError(f"git {args[0]} failed:\n{result.stdout}\n{result.stderr}")
+    return result.stdout.strip()
 
 
 tag = os.environ["UPSTREAM_TAG"]
@@ -26,6 +27,7 @@ if merge.returncode and (
     raise RuntimeError("Upstream merge failed; resolve the source conflict before publishing.")
 # GITHUB_TOKEN cannot edit workflow definitions. Keep this fork's CI definitions;
 # all application source and other upstream files still follow the release tag.
+git("add", "--all", "--", ".github/workflows")
 git("restore", "--source=HEAD", "--staged", "--worktree", "--", ".github/workflows")
 
 path = pathlib.Path("Plain Craft Launcher 2/Modules/ModSecret.vb")
