@@ -19,6 +19,7 @@
 - 可在 Actions → Follow upstream releases → Run workflow 手动检查并重试。
 - 只使用 GitHub 自动提供的 `GITHUB_TOKEN`，不需要保存个人 PAT。
 - 上游自带的 Build 工作流在此 fork 中停用，由本工作流负责编译和发布。
+- 应用源码及资源跟随上游；`.github/workflows/` 保留本 fork 的定义，避免普通自动化令牌无法更新工作流文件而中断同步。
 
 这里的“自动更新”指仓库同步和 GitHub Release 发布；未修改启动器自身的在线更新服务。
 下载修改版请使用本仓库的 Releases。

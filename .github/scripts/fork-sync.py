@@ -18,7 +18,15 @@ git("config", "user.email", "41898282+github-actions[bot]@users.noreply.github.c
 git("fetch", "--no-tags", "https://github.com/Meloong-Git/PCL.git",
     "refs/tags/" + tag)
 upstream_sha = git("rev-parse", "FETCH_HEAD^{commit}")
-git("merge", "--no-commit", "--no-ff", upstream_sha)
+merge = subprocess.run(["git", "merge", "--no-commit", "--no-ff", upstream_sha])
+conflicts = git("diff", "--name-only", "--diff-filter=U").splitlines()
+if merge.returncode and (
+    not conflicts or any(not p.startswith(".github/workflows/") for p in conflicts)
+):
+    raise RuntimeError("Upstream merge failed; resolve the source conflict before publishing.")
+# GITHUB_TOKEN cannot edit workflow definitions. Keep this fork's CI definitions;
+# all application source and other upstream files still follow the release tag.
+git("restore", "--source=HEAD", "--staged", "--worktree", "--", ".github/workflows")
 
 path = pathlib.Path("Plain Craft Launcher 2/Modules/ModSecret.vb")
 original = path.read_bytes()
@@ -40,8 +48,9 @@ allowed = {
     ".github/scripts/fork-package.ps1",
 }
 changed = set(git("diff", "--name-only", upstream_sha).splitlines())
-if changed - allowed:
-    raise RuntimeError(f"Unexpected differences from upstream: {sorted(changed - allowed)}")
+unexpected = {p for p in changed - allowed if not p.startswith(".github/workflows/")}
+if unexpected:
+    raise RuntimeError(f"Unexpected differences from upstream: {sorted(unexpected)}")
 upstream_source = subprocess.run(
     ["git", "show", upstream_sha + ":" + str(path).replace("\\", "/")],
     check=True, capture_output=True,
