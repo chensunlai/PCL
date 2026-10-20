@@ -3,8 +3,9 @@
 这是第三方基于 [PCL](https://github.com/Meloong-Git/PCL) 独立修改的版本，不是官方发行版。
 原作者：**龙腾猫跃**；[赞助原作者](https://afdian.com/a/LTCat)。保留上游署名、关于页面和 LICENCE。
 
-唯一功能修改：`Plain Craft Launcher 2/Modules/ModSecret.vb` 中
+下载功能修改：`Plain Craft Launcher 2/Modules/ModSecret.vb` 中
 `Public Const RestrictMcDownload As Boolean = False`。
+构建时另将同版本官方成品中的微软 Client ID 和 CurseForge 配置内置到程序，无需运行时环境变量。
 
 ## 自动跟随 Release
 
@@ -12,7 +13,7 @@
 - 从 `2.99.0.0` 开始跟踪之后发布的所有 Release，包含预发布；不会补编更早的历史版本。
 - 按发布时间依次合并上游 Release **标签指向的源码**，保留这一个常量修改及本仓库的自动化文件。
 - 仅在 GitHub Windows runner 上编译 Release，不在本地编译。
-- 成功后发布 `fork-上游标签`，附 `.exe`、完整 `.zip` 和 `SHA256SUMS.txt`；预发布标记与上游一致。
+- 成功后发布 `fork-上游标签-embedded`，附 `.exe`、完整 `.zip` 和 `SHA256SUMS.txt`；预发布标记与上游一致。旧的无内置配置版本保留历史记录。
 - 已成功发布的版本会跳过；失败的版本下次检查自动重试。上传完成后才公开 Release。
 - 修改位置变化、合并冲突或出现额外源码差异时会失败并停止发布，避免静默发布错误版本。
 - 上游长期不发布时，每 30 天生成一个无源码变化的空提交，防止计划工作流因仓库不活跃而停用。
@@ -24,12 +25,14 @@
 这里的“自动更新”指仓库同步和 GitHub Release 发布；未修改启动器自身的在线更新服务。
 下载修改版请使用本仓库的 Releases。
 
-## 上游保留的配置
+## 内置官方成品配置
 
-上游公开源码没有附带微软应用 Client ID 和 CurseForge API Key，本 fork 不捏造或借用其他项目的密钥。
-如需这些服务，可在运行启动器的 Windows 环境中设置上游已支持的变量：
+Actions 从上游 Release 标签自带的 `最新正式版.zip` 读取官方 EXE，先验证程序版本与标签一致，
+再静态读取微软 Client ID 和 CurseForge 请求头配置，写入未提交的构建副本。
+编译完成后验证 EXE 中的配置与官方一致、`RestrictMcDownload = False`，
+且不再包含 `PCL_MS_CLIENT_ID` 或 `PCL_CURSEFORGE_API_KEY` 的运行时查找。
 
-- `PCL_MS_CLIENT_ID`：你自己的微软应用 Client ID。
-- `PCL_CURSEFORGE_API_KEY`：你自己的 CurseForge API Key。
-
-不配置这些值会影响对应服务，但与本次解除下载限制的常量修改相互独立。
+配置值不提交到公开源码，不明文打印到日志；发布包中的程序已内置配置。
+每次构建都重新读取对应的官方成品，因此会跟随官方配置变化。
+如果上游改变存放方式、缺少匹配版本的官方成品或验证失败，工作流停止发布，不会退回空配置版本。
+静态校验不等于实际账号登录验证，服务是否接受请求仍取决于上游服务状态和应用权限。

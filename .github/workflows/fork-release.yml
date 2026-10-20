@@ -69,6 +69,12 @@ jobs:
       - name: Sync upstream tag and verify the one-line patch
         id: source
         run: python .github/scripts/fork-sync.py
+      - name: Read official release settings into the build copy
+        run: |
+          python -m pip install dnfile==0.18.0 dncil==1.0.2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .github/scripts/fork-credentials.py embed
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
@@ -81,6 +87,13 @@ jobs:
         run: |
           msbuild "Plain Craft Launcher 2/Plain Craft Launcher 2.vbproj" /m /p:Configuration=Release /p:Platform=AnyCPU /verbosity:minimal
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify the compiled settings and download patch
+        run: |
+          python .github/scripts/fork-credentials.py verify
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Restore public source after compilation
+        if: always()
+        run: git restore -- "Plain Craft Launcher 2/Modules/ModSecret.vb"
       - name: Package and checksum
         env:
           UPSTREAM_SHA: ${{ steps.source.outputs.upstream_sha }}
@@ -98,7 +111,7 @@ jobs:
           IS_PRERELEASE: ${{ matrix.prerelease }}
         shell: pwsh
         run: |
-          $tag = "fork-$env:UPSTREAM_TAG"
+          $tag = "fork-$env:UPSTREAM_TAG-embedded"
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
             gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_SHA --draft --title "PCL chensunlai 修改版 $env:UPSTREAM_TAG" --notes-file release-notes.md

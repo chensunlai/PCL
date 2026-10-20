@@ -12,7 +12,7 @@ module.exports = async ({ github, context, core }) => {
     .filter(r => !r.draft && r.published_at >= firstPublishedAt)
     .sort((a, b) => a.published_at.localeCompare(b.published_at))
     .filter(r => !own.some(f =>
-      f.tag_name === `fork-${r.tag_name}` && !f.draft &&
+      f.tag_name === `fork-${r.tag_name}-embedded` && !f.draft &&
       f.body?.includes(`<!-- pcl-upstream-release:${r.id} -->`) &&
       ['.exe', '.zip', 'SHA256SUMS.txt'].every(suffix =>
         f.assets.some(a => a.name.endsWith(suffix) && a.size > 0))))

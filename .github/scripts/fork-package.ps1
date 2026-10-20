@@ -17,6 +17,8 @@ $metadata = [ordered]@{
     upstream_commit = $env:UPSTREAM_SHA
     fork_commit = $env:SOURCE_SHA
     restrict_mc_download = $false
+    credential_source = 'matching official release executable'
+    runtime_credential_environment_variables = $false
     workflow_run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
 }
 $metadata | ConvertTo-Json | Set-Content 'package/build-info.json' -Encoding utf8
@@ -34,7 +36,8 @@ Get-ChildItem dist -File | Sort-Object Name | ForEach-Object {
 - 功能修改：仅将 ``RestrictMcDownload`` 设为 ``False``。
 - GitHub Actions 云端编译，附可执行文件、完整打包文件和 SHA-256 校验值。
 - 原作者：龙腾猫跃；赞助：https://afdian.com/a/LTCat
-- 微软登录和 CurseForge 使用上游的环境变量配置（见仓库 FORK.md）。
+- 微软 Client ID 与 CurseForge 配置已从同版本官方程序读取并内置，无需设置环境变量。
+- 发布前已静态核验成品中的两项配置与官方一致，并确认下载限制关闭；未代替用户进行账号登录测试。
 
 <!-- pcl-upstream-release:$env:UPSTREAM_RELEASE_ID -->
 "@ | Set-Content release-notes.md -Encoding utf8

@@ -48,6 +48,7 @@ allowed = {
     ".github/scripts/fork-releases.cjs",
     ".github/scripts/fork-sync.py",
     ".github/scripts/fork-package.ps1",
+    ".github/scripts/fork-credentials.py",
 }
 changed = set(git("diff", "--name-only", upstream_sha).splitlines())
 unexpected = {p for p in changed - allowed if not p.startswith(".github/workflows/")}
